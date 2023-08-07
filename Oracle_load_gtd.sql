@@ -711,34 +711,5 @@ CREATE OR REPLACE PACKAGE BODY CBD.SOTI_Gtd
       --
       Modify_HC_Status(pDT_Id, SOTI_Const.Status_Cancelled);
     END;
-  ------------------------------------------------------------------
-  PROCEDURE Drop_Gtd(pDT_Id         SOTI_Types.T_Id,
-                     pLetter_Id     SOTI_Types.T_Id,
-                     pComputer_Name VARCHAR2,
-                     pNet_Address   VARCHAR2)
-    IS
-      Dummy SOTI_Types.T_Id;
-    BEGIN
-      --
-      -- Права будут проверены при получении блока
-      -- Блок предполагает редактирование ТД для изменения Gtd_Status в
-      --   процедуре Start_Event. Сразу после нее возможность редактирования снимается
-      --
-      Check_Lock_Mode(pDT_Id, SOTI_Const.cYes, SOTI_Const.cNo, SOTI_Const.cNo);
-      --
-      -- ЭК должна быть локальной
-      --
-      SOTI_Util.Check_Gtd_Local(pDT_Id);
-      --
-      Dummy := Start_Event(SOTI_Const.Ev_Drop, pDT_Id, SOTI_Const.Status_Dropped,
-      pLetter_Id, pComputer_Name, pNet_Address);
-      --
-      -- Поддержка спец. данных
-      --
-      Do_Spec_Support(pDT_Id, SOTI_Const.Ev_Drop);
-      --
-      -- Меняем режим блока
-      --
-      Check_Lock_Mode(pDT_Id, SOTI_Const.cNo, SOTI_Const.cNo, SOTI_Const.cNo);
-      --
-      -- Удал
+END;
+/
