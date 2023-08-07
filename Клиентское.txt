@@ -1,0 +1,471 @@
+class InProf(QtWidgets.QDialog):
+    def __init__(self, name, password, id_sub, parent=None):
+        super(InProf, self).__init__(parent)
+        self.name = name
+        self.password = password
+        self.id_sub = id_sub
+        self.initUI()
+    def initUI(self):
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.setFixedSize(1450, 900)
+        self.setWindowTitle("Личный кабинет преподавателя")
+        self.scroll = QScrollArea(self)
+        self.widget = QWidget(self)
+        self.vbox = QVBoxLayout(self)
+        server = "LAPTOP-N2VDG922\SQLEXPRESS"
+        database = "FOR_ABITURIENTS"
+        self.cnxn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                                   "Server=" + server + ";"
+                                                        "Database=" + database + ";"
+                                                                                 "username=" + self.name + ";"
+                                                                                                      "password=" + self.password + ";"                                                                                                                "Trusted_Connection=yes;")
+        self.query = "-- {}\n\n-- Made in Python".format(datetime.now().strftime("%d/%m/%Y"))
+        cursor = self.cnxn.cursor()
+        cursor.fast_executemany = True
+        query = "SELECT CONVERT(VARCHAR(20),ID,0) + '         ФИО: ' + SURNAME_R + ' ' + NAME_R + ' ' + MIDDLE_NAME_R + '         Идентификационный номер: ' + NUMBER_ID FROM ABITURIENTS WHERE ID_STATUS_ABITURIENT = 1 ORDER BY SURNAME_R ASC"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.getText(row[0])
+            row = cursor.fetchone()
+        query = "SELECT 'ID: ' +CONVERT(VARCHAR(20),ABITURIENTS.ID,0) + '         ФИО: ' + SURNAME_R + ' ' + NAME_R + ' ' + MIDDLE_NAME_R + '         Идентификационный номер: ' + NUMBER_ID, CONVERT(VARCHAR(20),EXAM_GRADE,0) FROM ABITURIENTS, EXAM_LISTS WHERE ABITURIENTS.ID = EXAM_LISTS.ID_ABITURIENT AND ID_STATUS_ABITURIENT = 1 ORDER BY SURNAME_R ASC"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            label = QLabel(row[0])
+            self.vbox.addWidget(label)
+            textEdit = QTextEdit(row[1])
+            self.vbox.addWidget(textEdit)
+            row = cursor.fetchone()
+        pushButton_1 = QtWidgets.QPushButton(self)
+        self.vbox.addWidget(pushButton_1)
+        pushButton_1.setText("Отмена")
+        pushButton_1.clicked.connect(self.btnClosed)
+        self.widget.setLayout(self.vbox)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.widget)
+        self.verticalLayout.addWidget(self.scroll)
+        self.setGeometry(300, 80, 1000, 900)
+        self.show()
+    def btnClosed(self):
+        self.close()
+    def getText(self, row):
+        server = "LAPTOP-N2VDG922\SQLEXPRESS"
+        database = "FOR_ABITURIENTS"
+        self.cnxn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                                   "Server=" + server + ";"
+                                                        "Database=" + database + ";"
+                                                                                 "username=" + self.name + ";"
+                                                                                                           "password=" + self.password + ";"                                                                                                                "Trusted_Connection=yes;")
+        cursor = self.cnxn.cursor()
+        cursor.fast_executemany = True
+        try:
+            text, okPressed = QInputDialog.getText(self, "Выставить отметку за вступительный экзамен", row+"    Отметка:",
+                                                        QLineEdit.Normal, "")
+            if okPressed and text != '':
+                query = "INSERT EXAM_LISTS VALUES (CONVERT(INT,"+ self.id_sub + ",0),(SELECT ID FROM ABITURIENTS WHERE ID = SUBSTRING ('"+ row +"', CHARINDEX('RANDOM','"+ row +"'), CHARINDEX('ФИО','"+ row +"')-1)),(SELECT ID FROM PROFESSORS WHERE LOGIN = '"+self.name+"'), "+text+")"
+                cursor.execute(query)
+                self.cnxn.commit()
+        except Exception as e:
+            print(e)
+class InAbi(QtWidgets.QDialog):
+    def __init__(self, name, password, parent=None):
+        super(InAbi, self).__init__(parent)
+        self.name = name
+        self.password = password
+        self.initUI()
+    def initUI(self):
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.setFixedSize(1450, 900)
+        self.setWindowTitle("Личный кабинет абитуриента")
+        self.scroll = QScrollArea(self)
+        self.widget = QWidget(self)
+        self.vbox = QVBoxLayout(self)
+        server = "LAPTOP-N2VDG922\SQLEXPRESS"
+        database = "FOR_ABITURIENTS"
+        self.cnxn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                                   "Server=" + server + ";"
+                                                        "Database=" + database + ";"
+                                                                                 "username=" + self.name + ";"
+                                                                                                      "password=" + self.password + ";"                                                                                                                "Trusted_Connection=yes;")
+        self.query = "-- {}\n\n-- Made in Python".format(datetime.now().strftime("%d/%m/%Y"))
+        cursor = self.cnxn.cursor()
+        cursor.fast_executemany = True
+        query = "SELECT SURNAME_R,NAME_R,MIDDLE_NAME_R,SURNAME_L,NAME_L,CONVERT(VARCHAR(20),DATE_OF_BIRTH,0), CONVERT(VARCHAR(20),AVER_DIPLOM,0) FROM ABITURIENTS WHERE LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object = QLabel("Фамилия абитуриента на русском языке")
+            self.vbox.addWidget(object)
+            self.textEdit = QtWidgets.QTextEdit(self)
+            self.textEdit.setText(row[0])
+            self.textEdit.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit)
+            object_1 = QLabel("Имя абитуриента на русском языке")
+            self.vbox.addWidget(object_1)
+            self.textEdit_1 = QtWidgets.QTextEdit(self)
+            self.textEdit_1.setText(row[1])
+            self.textEdit_1.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_1)
+            object_2 = QLabel("Отчество абитуриента на русском языке")
+            self.vbox.addWidget(object_2)
+            self.textEdit_2 = QtWidgets.QTextEdit(self)
+            self.textEdit_2.setText(row[2])
+            self.textEdit_2.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_2)
+            object_3 = QLabel("Фамилия абитуриента на английском языке")
+            self.vbox.addWidget(object_3)
+            self.textEdit_3 = QtWidgets.QTextEdit(self)
+            self.textEdit_3.setText(row[3])
+            self.textEdit_3.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_3)
+            object_4 = QLabel("Имя абитуриента на английском языке")
+            self.vbox.addWidget(object_4)
+            self.textEdit_4 = QtWidgets.QTextEdit(self)
+            self.textEdit_4.setText(row[4])
+            self.textEdit_4.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_4)
+            object_5 = QLabel("Дата рождения абитуриента")
+            self.vbox.addWidget(object_5)
+            self.textEdit_5 = QtWidgets.QTextEdit(self)
+            self.textEdit_5.setText(row[5])
+            self.textEdit_5.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_5)
+            object_9 = QLabel("Средний балл атестата")
+            self.textEdit_9 = QtWidgets.QTextEdit(self)
+            self.textEdit_9.setText(row[6])
+            self.textEdit_9.setReadOnly(True)
+            row = cursor.fetchone()
+        query = "SELECT STATUS_NAME FROM FAMILY_STATUS, ABITURIENTS WHERE FAMILY_STATUS.ID = ABITURIENTS.ID_FAMILY_STATUS AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object_6 = QLabel("Семейное положение абитуриента")
+            self.vbox.addWidget(object_6)
+            self.textEdit_6 = QtWidgets.QTextEdit(self)
+            self.textEdit_6.setText(row[0])
+            self.textEdit_6.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_6)
+            row = cursor.fetchone()
+        query = "SELECT GENDER_NAME FROM GENDERS, ABITURIENTS WHERE GENDERS.ID = ABITURIENTS.ID_GENDER AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object_7 = QLabel("Пол абитуриента")
+            self.vbox.addWidget(object_7)
+            self.textEdit_7 = QtWidgets.QTextEdit(self)
+            self.textEdit_7.setText(row[0])
+            self.textEdit_7.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_7)
+            row = cursor.fetchone()
+        query = "SELECT DOC_NAME + '    серия: '+ SERIAL + '    номер: ' + SER_NUMBER + '    идентификационный номер: ' + NUMBER_ID + '    выданный: ' + ISSUE_AUTHOR + '    срок действия:  с  ' + CONVERT(VARCHAR(20),DATE_FORM_ISSUE,0) + ' по ' + CONVERT(VARCHAR(20),DATE_FOR_ISSUE,0)  FROM DOCUMENT_TYPES, ABITURIENTS WHERE DOCUMENT_TYPES.ID = ABITURIENTS.ID_DOCUMENT_TYPE AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object_8 = QLabel("Документ, удостоверяющий личность абитуриента")
+            self.vbox.addWidget(object_8)
+            self.textEdit_8 = QtWidgets.QTextEdit(self)
+            self.textEdit_8.setText(row[0])
+            self.textEdit_8.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_8)
+            row = cursor.fetchone()
+        query = "SELECT PRIV_NAME FROM PRIVELEGIES, ABITURIENTS WHERE PRIVELEGIES.ID = ABITURIENTS.ID_PRIVILEGES AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object_10 = QLabel("Льготы абитуриента")
+            self.vbox.addWidget(object_10)
+            self.textEdit_10 = QtWidgets.QTextEdit(self)
+            self.textEdit_10.setText(row[0])
+            self.textEdit_10.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_10)
+            self.vbox.addWidget(object_9)
+            self.vbox.addWidget(self.textEdit_9)
+            row = cursor.fetchone()
+        query = "SELECT NAME_SPEC FROM SPECIALITIES, PRIORITY_OF_SPECIALITIES, ABITURIENTS WHERE PRIORITY_OF_SPECIALITIES.ID_ABITURIENT = ABITURIENTS.ID AND PRIORITY_OF_SPECIALITIES.PRIORITY = 1 AND PRIORITY_OF_SPECIALITIES.ID_SPECIALTIES = SPECIALITIES.ID AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        query = "SELECT CONVERT(VARCHAR(20),GROUP_EXAM,0) FROM ABITURIENTS WHERE LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            object_14 = QLabel("РАСПИСАНИЕ ВСТУПИТЕЛЬНЫХ ЭКЗАМЕНОВ    ГРУППА  -  " + row[0])
+            self.vbox.addWidget(object_14)
+            row = cursor.fetchone()
+        object_15 = QLabel("Основы алгоритмизации и программирования:")
+        self.vbox.addWidget(object_15)
+        query = "SELECT DISTINCT 'Консультация - ' + CONVERT(VARCHAR(20),DATE_OF_MEET,0) + ' в аудитории - ' + CONVERT(VARCHAR(20),AUDITORY,0) FROM TIMETABLE, PRIORITY_OF_SPECIALITIES, SPECIALITIES, ABITURIENTS WHERE PRIORITY_OF_SPECIALITIES.ID_ABITURIENT = ABITURIENTS.ID AND PRIORITY_OF_SPECIALITIES.PRIORITY = 1 AND PRIORITY_OF_SPECIALITIES.ID_SPECIALTIES = SPECIALITIES.ID AND PRIORITY_OF_SPECIALITIES.ID_SPECIALTIES = TIMETABLE.ID_SPECIALTIES AND TIMETABLE.ID_TYPE = 1 AND TIMETABLE.ID_SUBJECT = 1 AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.textEdit_15 = QtWidgets.QTextEdit(self)
+            self.textEdit_15.setText(row[0])
+            self.textEdit_15.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_15)
+            row = cursor.fetchone()
+        query = "SELECT DISTINCT 'Экзамен - ' + CONVERT(VARCHAR(20),DATE_OF_MEET,0) + ' в аудитории - ' + CONVERT(VARCHAR(20),AUDITORY,0) FROM TIMETABLE, PRIORITY_OF_SPECIALITIES, SPECIALITIES, ABITURIENTS WHERE PRIORITY_OF_SPECIALITIES.ID_ABITURIENT = ABITURIENTS.ID AND PRIORITY_OF_SPECIALITIES.PRIORITY = 1 AND PRIORITY_OF_SPECIALITIES.ID_SPECIALTIES = SPECIALITIES.ID AND PRIORITY_OF_SPECIALITIES.ID_SPECIALTIES = TIMETABLE.ID_SPECIALTIES AND TIMETABLE.ID_TYPE = 2 AND TIMETABLE.ID_SUBJECT = 1 AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.textEdit_16 = QtWidgets.QTextEdit(self)
+            self.textEdit_16.setText(row[0])
+            self.textEdit_16.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_16)
+            row = cursor.fetchone()
+        object_18 = QLabel("РЕЗУЛЬТАТЫ ВСТУПИТЕЛЬНЫХ ЭКЗАМЕНОВ:")
+        self.vbox.addWidget(object_18)
+        object_19 = QLabel("Основы алгоритмизации и программирования:")
+        self.vbox.addWidget(object_19)
+        query = "SELECT CONVERT(VARCHAR(20),ISNULL(EXAM_GRADE, 0),0) FROM EXAM_LISTS, ABITURIENTS WHERE EXAM_LISTS.ID_SUBJECT = 1 AND EXAM_LISTS.ID_ABITURIENT = ABITURIENTS.ID AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.textEdit_21 = QtWidgets.QTextEdit(self)
+            self.textEdit_21.setText(row[0])
+            self.textEdit_21.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_21)
+            row = cursor.fetchone()
+        object_22 = QLabel("ИТОГОВЫЙ РЕЗУЛЬТАТ:")
+        self.vbox.addWidget(object_22)
+        query = "SELECT CONVERT(VARCHAR(20),ISNULL(RESULT_POINTS, 0),0) FROM ABITURIENTS WHERE LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.textEdit_24 = QtWidgets.QTextEdit(self)
+            self.textEdit_24.setText(row[0])
+            self.textEdit_24.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_24)
+            row = cursor.fetchone()
+        object_23 = QLabel("СТАТУС АБИТУРИЕНТА:")
+        self.vbox.addWidget(object_23)
+        query = "SELECT ABST_NAME FROM AB_STATUS, ABITURIENTS WHERE AB_STATUS.ID = ABITURIENTS.ID_STATUS_ABITURIENT AND LOGIN_ABI = '" + self.name + "'"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        while row:
+            self.textEdit_25 = QtWidgets.QTextEdit(self)
+            self.textEdit_25.setText(row[0])
+            self.textEdit_25.setReadOnly(True)
+            self.vbox.addWidget(self.textEdit_25)
+            row = cursor.fetchone()
+        self.widget.setLayout(self.vbox)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.widget)
+        self.verticalLayout.addWidget(self.scroll)
+        self.setGeometry(300, 80, 1000, 900)
+        self.show()
+class OpenZayav(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(OpenZayav, self).__init__(parent)
+        self.initUI()
+    def initUI(self):
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.setFixedSize(1450, 900)
+        self.scroll = QScrollArea(self)
+        self.widget = QWidget(self)
+        self.vbox = QVBoxLayout(self)
+        object = QLabel("Введите фамилию на русском языке *")
+        self.vbox.addWidget(object)
+        self.textEdit = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit)
+        object_1 = QLabel("Введите имя на русском языке *")
+        self.vbox.addWidget(object_1)
+        self.textEdit_1 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_1)
+        object_2 = QLabel("Введите отчество на русском языке")
+        self.vbox.addWidget(object_2)
+        self.textEdit_2 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_2)
+        object_3 = QLabel("Введите фамилию на английском языке *")
+        self.vbox.addWidget(object_3)
+        self.textEdit_3 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_3)
+        object_4 = QLabel("Введите имя на английском языке *")
+        self.vbox.addWidget(object_4)
+        self.textEdit_4 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_4)
+        object_5 = QLabel("Введите дату рождения в формате YYYY-MM-DD *")
+        self.vbox.addWidget(object_5)
+        self.textEdit_5 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_5)
+        server = "LAPTOP-N2VDG922\SQLEXPRESS"
+        name = "ADMIN_ABI"
+        passw = "AdminAbi2021"
+        database = "FOR_ABITURIENTS"
+        self.cnxn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                                   "Server=" + server + ";"
+                                   "Database=" + database + ";"
+                                   "username=" + name + ";"
+                                   "password=" + passw + ";"                                                                                                                "Trusted_Connection=yes;")
+        self.query = "-- {}\n\n-- Made in Python".format(datetime.now().strftime("%d/%m/%Y"))
+        cursor = self.cnxn.cursor()
+        cursor.fast_executemany = True
+        self.comboBox_3 = QtWidgets.QComboBox(self)
+        self.comboBox_3.clear()
+        query = "SELECT DOC_NAME FROM DOCUMENT_TYPES"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_3.addItems(i)
+            # self.cnxn.commit()
+        object_15 = QLabel("Выберите тип документа, удостоверяющий личность")
+        self.vbox.addWidget(object_15)
+        self.vbox.addWidget(self.comboBox_3)
+        object_6 = QLabel("Введите номер документа, удостоверяющий личность *")
+        self.vbox.addWidget(object_6)
+        self.textEdit_6 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_6)
+        object_7 = QLabel("Введите серию документа, удостоверяющий личность *")
+        self.vbox.addWidget(object_7)
+        self.textEdit_7 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_7)
+        object_8 = QLabel("Введите идентификационный номер документа, удостоверяющий личность *")
+        self.vbox.addWidget(object_8)
+        self.textEdit_8 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_8)
+        object_9 = QLabel("Введите дату выдачи документа, удостоверяющий личность в формате YYYY-MM-DD *")
+        self.vbox.addWidget(object_9)
+        self.textEdit_9 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_9)
+        object_10 = QLabel("Введите дату окончания действия документа, удостоверяющий личность в формате YYYY-MM-DD *")
+        self.vbox.addWidget(object_10)
+        self.textEdit_10 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_10)
+        object_14 = QLabel("Введите орган выдавший документ, удостоверяющий личность *")
+        self.vbox.addWidget(object_14)
+        self.textEdit_11 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_11)
+        self.comboBox = QtWidgets.QComboBox(self)
+        self.comboBox.clear()
+        query = "SELECT GENDER_NAME FROM GENDERS"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox.addItems(i)
+            # self.cnxn.commit()
+        object_11 = QLabel("Выберите пол")
+        self.vbox.addWidget(object_11)
+        self.vbox.addWidget(self.comboBox)
+        self.comboBox_1 = QtWidgets.QComboBox(self)
+        self.comboBox_1.clear()
+        query = "SELECT PRIV_NAME FROM PRIVELEGIES WHERE STATUS_ACTIVE = 1"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_1.addItems(i)
+                # self.cnxn.commit()
+        object_12 = QLabel("Выберите льготы")
+        self.vbox.addWidget(object_12)
+        self.vbox.addWidget(self.comboBox_1)
+        self.comboBox_2 = QtWidgets.QComboBox(self)
+        self.comboBox_2.clear()
+        query = "SELECT STATUS_NAME FROM FAMILY_STATUS"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_2.addItems(i)
+        object_13 = QLabel("Выберите семейное положение")
+        self.vbox.addWidget(object_13)
+        self.vbox.addWidget(self.comboBox_2)
+        object_16 = QLabel("Введите средний балл за диплом  в формате NN.NN *")
+        self.vbox.addWidget(object_16)
+        self.textEdit_12 = QtWidgets.QTextEdit(self)
+        self.vbox.addWidget(self.textEdit_12)
+        self.comboBox_4 = QtWidgets.QComboBox(self)
+        self.comboBox_4.clear()
+        query = "SELECT NAME_SPEC + '       специализация - ' + SPECIALIZATION + '       форма обучения - ' + (SELECT NAME_FORM FROM FORMS_STUDY WHERE ID = SPECIALITIES.ID_FORM) FROM SPECIALITIES"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_4.addItems(i)
+        object_17 = QLabel("Выберите специальность с приоритетом 1")
+        self.vbox.addWidget(object_17)
+        self.vbox.addWidget(self.comboBox_4)
+        self.comboBox_5 = QtWidgets.QComboBox(self)
+        self.comboBox_5.clear()
+        query = "SELECT NAME_SPEC + '       специализация - ' + SPECIALIZATION + '       форма обучения - ' + (SELECT NAME_FORM FROM FORMS_STUDY WHERE ID = SPECIALITIES.ID_FORM) FROM SPECIALITIES"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_5.addItems(i)
+        object_18 = QLabel("Выберите специальность с приоритетом 2")
+        self.vbox.addWidget(object_18)
+        self.vbox.addWidget(self.comboBox_5)
+        self.comboBox_6 = QtWidgets.QComboBox(self)
+        self.comboBox_6.clear()
+        query = "SELECT NAME_SPEC + '       специализация - ' + SPECIALIZATION + '       форма обучения - ' + (SELECT NAME_FORM FROM FORMS_STUDY WHERE ID = SPECIALITIES.ID_FORM) FROM SPECIALITIES"
+        cursor.execute(query)
+        for i in cursor:
+            self.comboBox_6.addItems(i)
+        object_19 = QLabel("Выберите специальность с приоритетом 3")
+        self.setWindowTitle('Подача заявления')
+        self.show()
+    def CreateUs(self):
+        try:
+            cursor = self.cnxn.cursor()
+            cursor.fast_executemany = True
+            query = "INSERT INTO ABITURIENTS (SURNAME_R, NAME_R, MIDDLE_NAME_R," \
+                    " SURNAME_L, NAME_L, ID_GENDER, DATE_OF_BIRTH, ID_FAMILY_STATUS," \
+                    " ID_DOCUMENT_TYPE, NUMBER_ID, SERIAL, SER_NUMBER, ISSUE_AUTHOR," \
+                    " DATE_FORM_ISSUE, DATE_FOR_ISSUE, ID_PRIVILEGES, AVER_DIPLOM," \
+                    "ID_STATUS_ABITURIENT, LOGIN_ABI) " \
+                    "VALUES (" + "'" + self.textEdit.toPlainText() + "', " \
+                    + "'" + self.textEdit_1.toPlainText() + "', " \
+                    + "'" + self.textEdit_2.toPlainText() + "', " \
+                    + "'" + self.textEdit_3.toPlainText() + "', " \
+                    + "'" + self.textEdit_4.toPlainText() + "', " \
+                  + "(SELECT ID FROM GENDERS WHERE GENDER_NAME ='" + self.comboBox.currentText() + "'), " \
+                    + "'" + self.textEdit_5.toPlainText() + "', " \
+                    + "(SELECT ID FROM FAMILY_STATUS WHERE STATUS_NAME ='" + self.comboBox_2.currentText() + "'), " \
+                    + "(SELECT ID FROM DOCUMENT_TYPES WHERE DOC_NAME ='" + self.comboBox_3.currentText() + "'), " \
+                    + "'" + self.textEdit_8.toPlainText() + "', " \
+                    + "'" + self.textEdit_7.toPlainText() + "', " \
+                    + "'" + self.textEdit_6.toPlainText() + "', " \
+                    + "'" + self.textEdit_11.toPlainText() + "', " \
+                    + "'" + self.textEdit_9.toPlainText() + "', " \
+                    + "'" + self.textEdit_10.toPlainText() + "', " \
+              + "(SELECT ID FROM PRIVELEGIES WHERE PRIV_NAME ='" + self.comboBox_1.currentText() + "'), " \
+                    + "'" + self.textEdit_12.toPlainText() + "', " \
+                    + "1," \
+                    + "'" + self.textEdit_3.toPlainText() + "' " \
+                    + ")"
+            cursor.execute(query)
+            self.cnxn.commit()
+            query = "INSERT PRIORITY_OF_SPECIALITIES values ("+\
+                    "(SELECT ID FROM ABITURIENTS WHERE LOGIN_ABI = "+ "'" + self.textEdit_3.toPlainText() + "') "+",(SELECT ID FROM SPECIALITIES WHERE NAME_SPEC = SUBSTRING ('"+ self.comboBox_4.currentText() + "', "+\
+		            "CHARINDEX('RANDOM','" + self.comboBox_4.currentText() + "'), "+\
+		            "CHARINDEX('специализация','" + self.comboBox_4.currentText() + "')-1)),1)"
+            cursor.execute(query)
+            self.cnxn.commit()
+            query = "INSERT PRIORITY_OF_SPECIALITIES values (" + \
+                    "(SELECT ID FROM ABITURIENTS WHERE LOGIN_ABI = " + "'" + self.textEdit_3.toPlainText() + "') " + ",(SELECT ID FROM SPECIALITIES WHERE NAME_SPEC = SUBSTRING ('" + self.comboBox_4.currentText() + "', " + \
+                    "CHARINDEX('RANDOM','" + self.comboBox_4.currentText() + "'), " + \
+                    "CHARINDEX('специализация','" + self.comboBox_4.currentText() + "')-1)),2)"
+            cursor.execute(query)
+            self.cnxn.commit()
+            query = "INSERT PRIORITY_OF_SPECIALITIES values (" + \
+                    "(SELECT ID FROM ABITURIENTS WHERE LOGIN_ABI = " + "'" + self.textEdit_3.toPlainText() + "') " + ",(SELECT ID FROM SPECIALITIES WHERE NAME_SPEC = SUBSTRING ('" + self.comboBox_4.currentText() + "', " + \
+                    "CHARINDEX('RANDOM','" + self.comboBox_4.currentText() + "'), " + \
+                    "CHARINDEX('специализация','" + self.comboBox_4.currentText() + "')-1)),3)"
+            cursor.execute(query)
+            self.cnxn.commit()
+            user = self.textEdit_3.toPlainText()
+            pas = user + "2021Abi"
+            query = "CREATE LOGIN " + user + " WITH PASSWORD = '" + pas +"'"
+            cursor.execute(query)
+            self.cnxn.commit()
+            query = "CREATE USER " + user + " FOR LOGIN " + user
+            cursor.execute(query)
+            self.cnxn.commit()
+            query = "ALTER ROLE ABITURIENTS ADD MEMBER " + user
+            cursor.execute(query)
+            self.cnxn.commit()
+            ctypes.windll.user32.MessageBoxW(0, "Ваши документы приняты и будут рассмотрены. \n"
+                                                "Ваш логин - " + user + ".\nВаш пароль - " + pas +
+                                                ".\nВ случае возникновения вопросов, обратитесь в приемную коммиссию",
+                                                "Подача заявления в университет", 1)
+            self.close()
+        except Exception as e:
+            ctypes.windll.user32.MessageBoxW(0, "Произошла ошибка! Проверьте все ли поля с * заполнены или обратитесь в службу поддержки", "Подача заявления в университет", 1)
+    def btnClosed(self):
+        self.close()
